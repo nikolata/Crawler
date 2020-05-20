@@ -4,8 +4,8 @@ import sys
 from database import session
 from database import Base, engine
 from model import Websites, Counter
-import sqlalchemy
 from timeout import timeout
+from try_functions import timeout_error, add_to_database
 
 
 def show_histogram():
@@ -43,21 +43,10 @@ def add_all_new_websites(website, parent):
             if 'http' in link_string and str(link_string) not in to_be_visited:
                 try:
                     can_procede = True
-                    try:
-                        server = get_server(link_string)
-                    except TimeoutError:
-                        can_procede = False
+                    server, can_procede = timeout_error(link_string)
                     if can_procede is True:
-                        try:
-                            session.add(Websites(website_link=link_string, server=server, parent_id=parent))
-                            session.commit()
-                            to_be_visited.append(link_string)
-                            print(link_string)
-                        except (sqlalchemy.exc.IntegrityError, sqlalchemy.exc.InvalidRequestError):
-                            print('this website is already added')
-                            session.rollback()
-                            pass
-                except (requests.exceptions.ConnectionError, KeyError):
+                        to_be_visited = add_to_database(link_string, server, parent, to_be_visited)
+                except (requests.exceptions.ConnectionError, KeyError, requests.exceptions.InvalidSchema):
                     print('ERROR 2')
                     pass
             if 'link.php' in link_string and str(link_string) not in to_be_visited:
@@ -65,21 +54,10 @@ def add_all_new_websites(website, parent):
                     url = 'https://register.start.bg/'
                     link_string = url + link_string
                     can_procede = True
-                    try:
-                        server = get_server(link_string)
-                    except TimeoutError:
-                        can_procede = False
+                    server, can_procede = timeout_error(link_string)
                     if can_procede is True:
-                        try:
-                            session.add(Websites(website_link=link_string, server=server, parent_id=parent))
-                            session.commit()
-                            to_be_visited.append(link_string)
-                            print(link_string)
-                        except (sqlalchemy.exc.IntegrityError, sqlalchemy.exc.InvalidRequestError):
-                            session.rollback()
-                            print('this website is already added')
-                            pass
-                except (requests.exceptions.ConnectionError, KeyError):
+                        to_be_visited = add_to_database(link_string, server, parent, to_be_visited)
+                except (requests.exceptions.ConnectionError, KeyError, requests.exceptions.InvalidSchema):
                     pass
 
 
@@ -119,19 +97,9 @@ def add_starting_links(start, to_be_visited=[]):
             if 'http' in link_string and str(link_string) not in to_be_visited:
                 try:
                     can_procede = True
-                    try:
-                        server = get_server(link_string)
-                    except TimeoutError:
-                        can_procede = False
+                    server, can_procede = timeout_error(link_string)
                     if can_procede is True:
-                        try:
-                            session.add(Websites(website_link=link_string, server=server, parent_id=0))
-                            session.commit()
-                        except (sqlalchemy.exc.IntegrityError, sqlalchemy.exc.InvalidRequestError):
-                            print('this website is already added')
-                            session.rollback()
-                            pass
-
+                        to_be_visited = add_to_database(link_string, server, 0, to_be_visited)
                 except (requests.exceptions.ConnectionError, KeyError):
                     pass
                 print(link_string)
@@ -142,18 +110,9 @@ def add_starting_links(start, to_be_visited=[]):
                     # r = requests.get(link_string)
                     # server = r.headers['Server']
                     can_procede = True
-                    try:
-                        server = get_server(link_string)
-                    except TimeoutError:
-                        can_procede = False
+                    server, can_procede = timeout_error(link_string)
                     if can_procede is True:
-                        try:
-                            session.add(Websites(website_link=link_string, server=server, parent_id=0))
-                            session.commit()
-                        except (sqlalchemy.exc.IntegrityError, sqlalchemy.exc.InvalidRequestError):
-                            print('this website is already added')
-                            session.rollback()
-                            pass
+                        to_be_visited = add_to_database(link_string, server, 0, to_be_visited)
                 except (requests.exceptions.ConnectionError, KeyError):
                     pass
                 print(link_string)
