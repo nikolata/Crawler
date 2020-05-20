@@ -1,6 +1,6 @@
 from timeout import timeout
 import requests
-from database import session
+from database import session_scope
 from model import Websites
 import sqlalchemy
 
@@ -24,16 +24,15 @@ def timeout_error(link):
 
 
 def add_to_database(link_string, server, parent, to_be_visited):
-    try:
+    with session_scope() as session:
+        # try:
         session.add(Websites(website_link=link_string, server=server, parent_id=parent))
-        session.commit()
         to_be_visited.append(link_string)
         print(link_string)
         return to_be_visited
-    except (sqlalchemy.exc.IntegrityError, sqlalchemy.exc.InvalidRequestError):
-        print('this website is already added')
-        session.rollback()
-        return to_be_visited
+        # except (sqlalchemy.exc.IntegrityError, sqlalchemy.exc.InvalidRequestError):
+        #     print('this website is already added')
+        #     return to_be_visited
 
 
 #     try:

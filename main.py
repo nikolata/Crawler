@@ -46,7 +46,8 @@ def add_all_new_websites(website, parent):
                     server, can_procede = timeout_error(link_string)
                     if can_procede is True:
                         to_be_visited = add_to_database(link_string, server, parent, to_be_visited)
-                except (requests.exceptions.ConnectionError, KeyError, requests.exceptions.InvalidSchema):
+                except (requests.exceptions.ConnectionError, KeyError, requests.exceptions.InvalidSchema,
+                        requests.exceptions.InvalidURL):
                     print('ERROR 2')
                     pass
             if 'link.php' in link_string and str(link_string) not in to_be_visited:
@@ -57,7 +58,8 @@ def add_all_new_websites(website, parent):
                     server, can_procede = timeout_error(link_string)
                     if can_procede is True:
                         to_be_visited = add_to_database(link_string, server, parent, to_be_visited)
-                except (requests.exceptions.ConnectionError, KeyError, requests.exceptions.InvalidSchema):
+                except (requests.exceptions.ConnectionError, KeyError, requests.exceptions.InvalidSchema,
+                        requests.exceptions.InvalidURL):
                     pass
 
 
@@ -100,7 +102,8 @@ def add_starting_links(start, to_be_visited=[]):
                     server, can_procede = timeout_error(link_string)
                     if can_procede is True:
                         to_be_visited = add_to_database(link_string, server, 0, to_be_visited)
-                except (requests.exceptions.ConnectionError, KeyError):
+                except (requests.exceptions.ConnectionError, KeyError, requests.exceptions.InvalidSchema,
+                        requests.exceptions.InvalidURL):
                     pass
                 print(link_string)
             if 'link.php' in link_string and str(link_string) not in to_be_visited:
@@ -113,7 +116,8 @@ def add_starting_links(start, to_be_visited=[]):
                     server, can_procede = timeout_error(link_string)
                     if can_procede is True:
                         to_be_visited = add_to_database(link_string, server, 0, to_be_visited)
-                except (requests.exceptions.ConnectionError, KeyError):
+                except (requests.exceptions.ConnectionError, KeyError, requests.exceptions.InvalidSchema,
+                        requests.exceptions.InvalidURL):
                     pass
                 print(link_string)
     session.close()
