@@ -5,6 +5,7 @@ from database import session
 from database import Base, engine
 from model import Websites, Counter
 import sqlalchemy
+from timeout import timeout
 
 
 def show_histogram():
@@ -13,7 +14,18 @@ def show_histogram():
         print(server[0])
 
 
+def get_server(link):
+    with timeout(seconds=10):
+        try:
+            r = requests.get(link)
+            server = r.headers['Server']
+            return server
+        except TimeoutError:
+            raise TimeoutError
+
+
 def add_all_new_websites(website, parent):
+    print(website)
     response = requests.get(website, timeout=10)
     try:
         html = response.content.decode('utf-8')
@@ -30,34 +42,45 @@ def add_all_new_websites(website, parent):
         if link_string is not None:
             if 'http' in link_string and str(link_string) not in to_be_visited:
                 try:
-                    r = requests.get(link_string)
-                    server = r.headers['Server']
+                    can_procede = True
                     try:
-                        session.add(Websites(website_link=link_string, server=server, parent_id=parent))
-                        session.commit()
-                        to_be_visited.append(link_string)
-                    except (sqlalchemy.exc.IntegrityError, sqlalchemy.exc.InvalidRequestError):
-                        pass
+                        server = get_server(link_string)
+                    except TimeoutError:
+                        can_procede = False
+                    if can_procede is True:
+                        try:
+                            session.add(Websites(website_link=link_string, server=server, parent_id=parent))
+                            session.commit()
+                            to_be_visited.append(link_string)
+                            print(link_string)
+                        except (sqlalchemy.exc.IntegrityError, sqlalchemy.exc.InvalidRequestError):
+                            print('this website is already added')
+                            session.rollback()
+                            pass
                 except (requests.exceptions.ConnectionError, KeyError):
+                    print('ERROR 2')
                     pass
-                print(link_string)
             if 'link.php' in link_string and str(link_string) not in to_be_visited:
                 try:
                     url = 'https://register.start.bg/'
                     link_string = url + link_string
-                    r = requests.get(link_string)
-                    server = r.headers['Server']
+                    can_procede = True
                     try:
-                        session.add(Websites(website_link=link_string, server=server, parent_id=parent))
-                        session.commit()
-                        to_be_visited.append(link_string)
-                    except (sqlalchemy.exc.IntegrityError, sqlalchemy.exc.InvalidRequestError):
-                        pass
+                        server = get_server(link_string)
+                    except TimeoutError:
+                        can_procede = False
+                    if can_procede is True:
+                        try:
+                            session.add(Websites(website_link=link_string, server=server, parent_id=parent))
+                            session.commit()
+                            to_be_visited.append(link_string)
+                            print(link_string)
+                        except (sqlalchemy.exc.IntegrityError, sqlalchemy.exc.InvalidRequestError):
+                            session.rollback()
+                            print('this website is already added')
+                            pass
                 except (requests.exceptions.ConnectionError, KeyError):
                     pass
-                print(link_string)
-    session.close()
-    return
 
 
 def start_crawling():
@@ -71,16 +94,15 @@ def start_crawling():
         print('GRUMNA')
         session.query(Counter).filter(Counter.counter_id == 1)\
             .update({Counter.curr_id: current_id + 1}, synchronize_session=False)
+        session.commit()
         return start_crawling()
-    websites = session.query(Websites).all()
-    all_links = [w.website_link for w in websites if w.url_id >= current_id]
-    for link in all_links:
-        add_all_new_websites(link, current_id)
+    while True:
+        current_parent_link = session.query(Websites.website_link).filter(Websites.url_id == current_id).first()
+        add_all_new_websites(current_parent_link[0], current_id)
         session.query(Counter).filter(Counter.counter_id == 1)\
             .update({Counter.curr_id: current_id + 1}, synchronize_session=False)
+        session.commit()
         current_id += 1
-        if len(all_links) - current_id <= 10:
-            all_links = [w.website_link for w in websites if w.url_id >= current_id]
 
 
 def add_starting_links(start, to_be_visited=[]):
@@ -96,10 +118,20 @@ def add_starting_links(start, to_be_visited=[]):
         if link_string is not None:
             if 'http' in link_string and str(link_string) not in to_be_visited:
                 try:
-                    r = requests.get(link_string)
-                    server = r.headers['Server']
-                    session.add(Websites(website_link=link_string, server=server, parent_id=0))
-                    session.commit()
+                    can_procede = True
+                    try:
+                        server = get_server(link_string)
+                    except TimeoutError:
+                        can_procede = False
+                    if can_procede is True:
+                        try:
+                            session.add(Websites(website_link=link_string, server=server, parent_id=0))
+                            session.commit()
+                        except (sqlalchemy.exc.IntegrityError, sqlalchemy.exc.InvalidRequestError):
+                            print('this website is already added')
+                            session.rollback()
+                            pass
+
                 except (requests.exceptions.ConnectionError, KeyError):
                     pass
                 print(link_string)
@@ -107,10 +139,21 @@ def add_starting_links(start, to_be_visited=[]):
                 try:
                     url = 'https://register.start.bg/'
                     link_string = url + link_string
-                    r = requests.get(link_string)
-                    server = r.headers['Server']
-                    session.add(Websites(website_link=link_string, server=server, parent_id=0))
-                    session.commit()
+                    # r = requests.get(link_string)
+                    # server = r.headers['Server']
+                    can_procede = True
+                    try:
+                        server = get_server(link_string)
+                    except TimeoutError:
+                        can_procede = False
+                    if can_procede is True:
+                        try:
+                            session.add(Websites(website_link=link_string, server=server, parent_id=0))
+                            session.commit()
+                        except (sqlalchemy.exc.IntegrityError, sqlalchemy.exc.InvalidRequestError):
+                            print('this website is already added')
+                            session.rollback()
+                            pass
                 except (requests.exceptions.ConnectionError, KeyError):
                     pass
                 print(link_string)
@@ -122,7 +165,11 @@ def main():
     if command == 'create':
         add_starting_links('https://register.start.bg/')
     elif command == 'start':
-        start_crawling()
+        try:
+            start_crawling()
+        except KeyboardInterrupt:
+            session.commit()
+            session.close()
     elif command == 'histogram':
         show_histogram()
     else:
