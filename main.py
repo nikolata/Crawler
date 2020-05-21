@@ -105,7 +105,6 @@ def add_starting_links(start, to_be_visited=[]):
                 except (requests.exceptions.ConnectionError, KeyError, requests.exceptions.InvalidSchema,
                         requests.exceptions.InvalidURL):
                     pass
-                print(link_string)
             if 'link.php' in link_string and str(link_string) not in to_be_visited:
                 try:
                     url = 'https://register.start.bg/'
@@ -119,7 +118,6 @@ def add_starting_links(start, to_be_visited=[]):
                 except (requests.exceptions.ConnectionError, KeyError, requests.exceptions.InvalidSchema,
                         requests.exceptions.InvalidURL):
                     pass
-                print(link_string)
     session.close()
 
 
