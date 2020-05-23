@@ -10,12 +10,7 @@ import settings
 import time
 import sqlalchemy
 from sqlalchemy import and_
-
-
-def show_histogram():
-    all_servers = session.query(Websites.server).group_by(Websites.server).all()
-    for server in all_servers:
-        print(server[0])
+from histogram import show_histogram, show_histogram_servers
 
 
 def get_server(link):
@@ -72,29 +67,7 @@ def add_all_new_websites(website, parent):
                     pass
     print('WILL RETURN')
     return to_be_added
-    # bulk_add_to_db(to_be_added)
 
-
-# def start_crawling():
-#     curr_id = session.query(Counter.curr_id).filter(Counter.counter_id == 1).first()
-#     curr_link = session.query(Websites.website_link).filter(Websites.url_id == curr_id[0]).first()
-#     response = requests.get(str(curr_link[0]), timeout=10)
-#     current_id = curr_id[0]
-#     try:
-#         response.content.decode('utf-8')
-#     except UnicodeDecodeError:
-#         print('GRUMNA')
-#         session.query(Counter).filter(Counter.counter_id == 1)\
-#             .update({Counter.curr_id: current_id + 1}, synchronize_session=False)
-#         session.commit()
-#         return start_crawling()
-#     while True:
-#         current_parent_link = session.query(Websites.website_link).filter(Websites.url_id == current_id).first()
-#         add_all_new_websites(current_parent_link[0], current_id)
-#         session.query(Counter).filter(Counter.counter_id == 1)\
-#             .update({Counter.curr_id: current_id + 1}, synchronize_session=False)
-#         session.commit()
-#         current_id += 1
 
 def start_crawling():
     while True:
@@ -134,31 +107,6 @@ def start_crawling():
             print('except')
             time.sleep(5)
 
-
-#     print('vurtq se')
-#     check = session.query(Terminals.is_ready).filter(Terminals.terminal_name == settings.CURRENT_TERMINAL).first()
-#     if check[0] is True:
-#         session.query(Terminals).filter(Terminals.terminal_name == settings.CURRENT_TERMINAL)\
-#             .update({Terminals.is_ready: False}, synchronize_session=False)
-#         session.commit()
-#         all_links = session.query(ToBeVisited).filter(ToBeVisited.terminal_name == settings.CURRENT_TERMINAL).all()
-#         for link in all_links:
-#             print('zapochvam da tursq')
-#             to_be_added = add_all_new_websites(link.website_link, link.parent_id)
-#         session.query(Terminals).filter(Terminals.terminal_name == settings.CURRENT_TERMINAL)\
-#             .update({Terminals.is_ready: True}, synchronize_session=False)
-#         break
-# while True:
-#     check = session.query(Terminals.can_insert).filter(Terminals.terminal_name == settings.CURRENT_TERMINAL).first()
-#     if check[0] is True:
-#         bulk_add_to_db(to_be_added)
-#         session.commit()
-#         for link in to_be_added:
-#             session.query(Websites).filter(Websites.website_link == link.website_link)\
-#                 .update({Websites.used: True}, synchronize_session=False)
-#             session.commit()
-#         break
-# start_crawling()
 
 def add_starting_links(start, to_be_visited=[]):
     Base.metadata.create_all(engine)
@@ -203,15 +151,14 @@ def main():
     elif command == 'start':
         try:
             settings.CURRENT_TERMINAL = sys.argv[2]
-            #insert_terminal(settings.CURRENT_TERMINAL)
             start_crawling()
         except KeyboardInterrupt:
             session.commit()
             session.close()
-    elif command == 'controller':
-        controll()
     elif command == 'histogram':
         show_histogram()
+    elif command == 'histogram_servers':
+        show_histogram_servers()
     else:
         raise ValueError(f'Unknown command {command}. Valid ones are "create" and "start"')
 
