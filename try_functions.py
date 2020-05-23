@@ -2,7 +2,7 @@ from timeout import timeout
 import requests
 from database import session_scope
 from model import Websites
-import sqlalchemy
+from database import session
 
 
 def get_server(link):
@@ -33,6 +33,12 @@ def add_to_database(link_string, server, parent, to_be_visited):
         # except (sqlalchemy.exc.IntegrityError, sqlalchemy.exc.InvalidRequestError):
         #     print('this website is already added')
         #     return to_be_visited
+
+
+def bulk_add_to_db(websites):
+    session.bulk_save_objects(websites)
+
+
 
 
 #     try:
