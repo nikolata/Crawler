@@ -7,19 +7,16 @@ from database import session
 
 def get_server(link):
     with timeout(seconds=10):
-        try:
-            r = requests.get(link)
-            server = r.headers['Server']
-            return server
-        except TimeoutError:
-            raise TimeoutError
+        r = requests.get(link)
+        server = r.headers['Server']
+        return server
 
 
 def timeout_error(link):
     try:
         server = get_server(link)
         return server, True
-    except TimeoutError:
+    except Exception:
         return False, False
 
 

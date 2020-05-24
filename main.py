@@ -11,10 +11,13 @@ import time
 import sqlalchemy
 from sqlalchemy import and_
 from histogram import show_histogram, show_histogram_servers
+import json
+# from flask_display import display_json
+from json2html import *
 
 
 def get_server(link):
-    with timeout(seconds=10):
+    with timeout(seconds=20):
         try:
             r = requests.get(link)
             server = r.headers['Server']
@@ -23,7 +26,7 @@ def get_server(link):
             raise TimeoutError
 
 
-def add_all_new_websites(website, parent):
+def add_all_new_websites(website, parent, counter):
     print(website)
     response = requests.get(website, timeout=10)
     try:
@@ -47,7 +50,7 @@ def add_all_new_websites(website, parent):
                     if can_procede is True:
                         to_be_visited.append(link_string)
                         to_be_added.append(Websites(website_link=link_string, server=server, parent_id=parent))
-                        print(link_string)
+                        print(counter, link_string)
                 except (requests.exceptions.ConnectionError, KeyError, requests.exceptions.InvalidSchema,
                         requests.exceptions.InvalidURL):
                     print('ERROR 2')
@@ -61,7 +64,7 @@ def add_all_new_websites(website, parent):
                     if can_procede is True:
                         to_be_visited.append(link_string)
                         to_be_added.append(Websites(website_link=link_string, server=server, parent_id=parent))
-                        print(link_string)
+                        print(counter, link_string)
                 except (requests.exceptions.ConnectionError, KeyError, requests.exceptions.InvalidSchema,
                         requests.exceptions.InvalidURL):
                     pass
@@ -76,36 +79,56 @@ def start_crawling():
             current_id = current_id[0]
             websites = session.query(Websites)\
                 .filter(and_(Websites.url_id >= current_id,
-                             Websites.url_id <= current_id + 20,
+                             Websites.url_id <= current_id + 5,
                              Websites.used == 0)).all()
-            current_id = current_id + 20
+            print(websites)
+            current_id = current_id + 5
             session.query(Counter).filter(Counter.counter_id == 1)\
                 .update({Counter.curr_id: current_id}, synchronize_session=False)
             session.commit()
             to_be_added = []
+            counter = 0
             for website in websites:
+                counter += 1
                 try:
-                    to_be_added.extend(add_all_new_websites(website.website_link, website.server))
-                except TypeError:
+                    to_be_added.extend(add_all_new_websites(website.website_link, website.server, counter))
+                except Exception:
                     print('vurna nishto')
                     pass
             print('FOR-A SVURSHI')
-            while True:
-                try:
-                    bulk_add_to_db(to_be_added)
-                    session.commit()
-                    print('dobavih gi')
-                    break
-                except Exception:
-                    print('error in bulk add')
-                    time.sleep(5)
-            for website in to_be_added:
-                session.query(Websites).filter(Websites.website_link == website.website_link)\
-                    .update({Websites.used: 1})
-            session.commit()
+            if len(to_be_added) != 0:
+                for website in to_be_added:
+                    session.query(Websites).filter(Websites.website_link == website.website_link)\
+                        .update({Websites.used: 1})
+                session.commit()
+                while True:
+                    try:
+                        bulk_add_to_db(to_be_added)
+                        session.commit()
+                        print('dobavih gi')
+                        break
+                    except Exception:
+                        print('error in bulk add')
+                        time.sleep(5)
         except sqlalchemy.exc.OperationalError:
             print('except')
             time.sleep(5)
+
+
+def show_json(servers):
+    infoFromJson = json.loads(servers)
+    print(json2html.convert(json=infoFromJson))
+
+
+def display_servers():
+    all_servers = session.query(Websites.server).group_by(Websites.server).all()
+    to_be_dumped = {}
+    for server in all_servers:
+        server_count = len(session.query(Websites).filter(Websites.server == server[0]).all())
+        server_name = server[0]
+        to_be_dumped.update({server_name: server_count})
+    server_json = json.dumps(to_be_dumped, sort_keys=True, indent=4)
+    return server_json
 
 
 def add_starting_links(start, to_be_visited=[]):
@@ -159,6 +182,8 @@ def main():
         show_histogram()
     elif command == 'histogram_servers':
         show_histogram_servers()
+    elif command == 'flask_servers':
+        display_servers()
     else:
         raise ValueError(f'Unknown command {command}. Valid ones are "create" and "start"')
 
