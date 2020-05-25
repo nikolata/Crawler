@@ -173,7 +173,6 @@ def main():
         add_starting_links('https://register.start.bg/')
     elif command == 'start':
         try:
-            settings.CURRENT_TERMINAL = sys.argv[2]
             start_crawling()
         except KeyboardInterrupt:
             session.commit()
