@@ -1,6 +1,7 @@
 from database import Base
 from sqlalchemy import Column, Integer, String, DateTime, Boolean
-import datetime
+# import datetime
+from datetime import datetime
 
 
 class Websites(Base):
@@ -9,7 +10,7 @@ class Websites(Base):
     website_link = Column(String)
     server = Column(String)
     parent_id = Column(Integer)
-    created_date = Column(DateTime, default=datetime.datetime.utcnow)
+    created_date = Column(DateTime, default=datetime.now())
     used = Column(Boolean, default=False)
 
 
